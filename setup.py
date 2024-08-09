@@ -29,6 +29,7 @@ INSTALL_REQUIRES = [
     "polars >=0.19",
     "torchscale==0.2.0",
     "h5py>= 3.7.0",
+    "uproot",
 ]
 
 EXTRAS_REQUIRE = {
