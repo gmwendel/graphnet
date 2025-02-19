@@ -30,7 +30,7 @@ class NtupleReader(GraphNeTFileReader):
                 library='np'
             )
             maps = file["meta;1"].arrays(
-                filter_name=['pmtX', 'pmtY', 'pmtZ'],
+                filter_name=['pmtX', 'pmtY', 'pmtZ', 'pmtU', 'pmtV', 'pmtW'],
                 library='np'
             )
 
