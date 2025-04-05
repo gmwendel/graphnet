@@ -52,28 +52,28 @@ class MCHitExtractor(Extractor):
 
         n_hit = event_data['mcPMTNPE']
         idx = np.repeat(event_data['mcPMTID'], n_hit)
+        #I need to consider the implications of returning none before adding this cut
+        #if len(idx) > 3:
+        pmtu = maps['pmtU'][0][idx].astype(np.float32)
+        pmtv = maps['pmtV'][0][idx].astype(np.float32)
+        pmtw = maps['pmtW'][0][idx].astype(np.float32)
 
-        if len(idx) > 3:
-            pmtu = maps['pmtU'][0][idx].astype(np.float32)
-            pmtv = maps['pmtV'][0][idx].astype(np.float32)
-            pmtw = maps['pmtW'][0][idx].astype(np.float32)
+        data = {
+            self._output_keys['id']: idx,
+            self._output_keys['x']: maps['pmtX'][0][idx].astype(np.float32),
+            self._output_keys['y']: maps['pmtY'][0][idx].astype(np.float32),
+            self._output_keys['z']: maps['pmtZ'][0][idx].astype(np.float32),
+            self._output_keys['ze']: np.arccos(pmtw).astype(np.float32),
+            self._output_keys['az']: np.mod(np.arctan2(pmtv, pmtu), 2 * np.pi).astype(np.float32),
+            self._output_keys['t']: event_data['mcPEFrontEndTime'].astype(np.float32),
+            self._output_keys['charge']: np.ones(len(idx), dtype=np.float32), # MC charge is always 1
+        }
 
-            data = {
-                self._output_keys['id']: idx,
-                self._output_keys['x']: maps['pmtX'][0][idx].astype(np.float32),
-                self._output_keys['y']: maps['pmtY'][0][idx].astype(np.float32),
-                self._output_keys['z']: maps['pmtZ'][0][idx].astype(np.float32),
-                self._output_keys['ze']: np.arccos(pmtw).astype(np.float32),
-                self._output_keys['az']: np.mod(np.arctan2(pmtv, pmtu), 2 * np.pi).astype(np.float32),
-                self._output_keys['t']: event_data['mcPEFrontEndTime'].astype(np.float32),
-                self._output_keys['charge']: np.ones(len(idx), dtype=np.float32), # MC charge is always 1
-            }
+        return data
 
-            return data
+        #else:
 
-        else:
-
-            return None
+        #    return None
 
 
 class MCTruthExtractor(Extractor):
