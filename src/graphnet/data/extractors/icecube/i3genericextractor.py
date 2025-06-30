@@ -46,6 +46,7 @@ class I3GenericExtractor(I3Extractor):
         keys: Optional[Union[str, List[str]]] = None,
         exclude_keys: Optional[Union[str, List[str]]] = None,
         extractor_name: str = GENERIC_EXTRACTOR_NAME,
+        exclude: list = [None],
     ):
         """Construct I3GenericExtractor.
 
@@ -73,14 +74,14 @@ class I3GenericExtractor(I3Extractor):
         self._exclude_keys: Optional[List[str]] = exclude_keys
 
         # Base class constructor
-        super().__init__(extractor_name)
+        super().__init__(extractor_name, exclude=exclude)
 
     def _get_keys(self, frame: "icetray.I3Frame") -> List[str]:
         """Get the list of keys to be queried from `frame`.
 
-        If a list of keys was provided by the user, return this. Otherwise,
-        return all keys, possibly except ones that the user have explicitly
-        excluded.
+        If a list of keys was provided by the user, return this.
+        Otherwise, return all keys, possibly except ones that the user
+        have explicitly excluded.
         """
         if self._keys is None:
             keys = list(frame.keys())
@@ -264,12 +265,12 @@ class I3GenericExtractor(I3Extractor):
             flatten_nested_dictionary(res) for res in result_particles
         ]
 
-        result_primaries_transposed: Dict[
-            str, List[Any]
-        ] = transpose_list_of_dicts(result_primaries)
-        result_particles_transposed: Dict[
-            str, List[Any]
-        ] = transpose_list_of_dicts(result_particles)
+        result_primaries_transposed: Dict[str, List[Any]] = (
+            transpose_list_of_dicts(result_primaries)
+        )
+        result_particles_transposed: Dict[str, List[Any]] = (
+            transpose_list_of_dicts(result_particles)
+        )
 
         # Remove `majorID`, which has unsupported unit64 dtype.
         # Keep only one instances of `minorID`.

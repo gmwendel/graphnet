@@ -1,4 +1,5 @@
 """Filter classes for filtering I3-frames when converting I3-files."""
+
 from abc import abstractmethod
 from graphnet.utilities.logging import Logger
 from typing import List
@@ -63,8 +64,32 @@ class NullSplitI3Filter(I3Filter):
         return True
 
 
+class SubEventStreamI3Filter(I3Filter):
+    """A filter that only keeps frames from select splits."""
+
+    def __init__(self, selection: List[str]):
+        """Initialize SubEventStreamI3Filter.
+
+        Args:
+            selection: List of subevent streams to keep.
+        """
+        self._selection = selection
+
+    def _keep_frame(self, frame: "icetray.I3Frame") -> bool:
+        """Check if current frame should be kept.
+
+        Args:
+            frame: I3-frame
+                The I3-frame to check.
+        """
+        if frame.Has("I3EventHeader"):
+            if frame["I3EventHeader"].sub_event_stream not in self._selection:
+                return False
+        return True
+
+
 class I3FilterMask(I3Filter):
-    """checks list of filters from the FilterMask in I3 frames."""
+    """Checks list of filters from the FilterMask in I3 frames."""
 
     def __init__(self, filter_names: List[str], filter_any: bool = True):
         """Initialize I3FilterMask.
@@ -95,7 +120,8 @@ class I3FilterMask(I3Filter):
                 for filter_name in self._filter_names:
                     if filter_name not in frame["FilterMask"]:
                         self.warning_once(
-                            f"FilterMask {filter_name} not found in frame. skipping filter."
+                            f"FilterMask {filter_name} not found in frame. "
+                            "Skipping filter."
                         )
                         continue
                     elif frame["FilterMask"][filter].condition_passed is True:
@@ -104,18 +130,20 @@ class I3FilterMask(I3Filter):
                         bool_list.append(False)
                 if len(bool_list) == 0:
                     self.warning_once(
-                        "None of the FilterMask filters found in frame, FilterMask filters will not be applied."
+                        "None of the FilterMask filters found in frame."
+                        "FilterMask filters will not be applied."
                     )
                 return any(bool_list) or len(bool_list) == 0
             else:  # Require all filters to pass in order to keep the frame.
                 for filter_name in self._filter_names:
                     if filter_name not in frame["FilterMask"]:
                         self.warning_once(
-                            f"FilterMask {filter_name} not found in frame, skipping filter."
+                            f"FilterMask {filter_name} not found in frame."
+                            "Skipping filter."
                         )
                         continue
                     elif frame["FilterMask"][filter].condition_passed is True:
-                        continue  # current filter passed, continue to next filter
+                        continue  # current filter passed, go to next filter
                     else:
                         return (
                             False  # current filter failed so frame is skipped.
@@ -123,6 +151,70 @@ class I3FilterMask(I3Filter):
                 return True
         else:
             self.warning_once(
-                "FilterMask not found in frame, FilterMask filters will not be applied."
+                "FilterMask not found in frame."
+                "FilterMask filters will not be applied."
             )
             return True
+
+
+class TableFilter(I3Filter):
+    """A filter that checks if a table is present in the frame."""
+
+    def __init__(self, table_name: str):
+        """Initialize TableFilter.
+
+        Args:
+            table_name: str
+                The name of the table to check for.
+        """
+        self._table_name = table_name
+
+    def _keep_frame(self, frame: "icetray.I3Frame") -> bool:
+        """Check that the frame has a table.
+
+        Args:
+            frame: I3-frame
+                The I3-frame to check.
+        """
+        return frame.Has(self._table_name)
+
+
+class ChargeFilter(I3Filter):
+    """A filter that checks the recorded charge and requires a lower limit.
+
+    This also requires that the charge table is present in the frame.
+    """
+
+    def __init__(
+        self, min_charge: float, table_name: str = "Homogenized_QTot"
+    ):
+        """Initialize ChargeFilter.
+
+        Args:
+            min_charge: The minimum charge required to keep the frame.
+            table_name: The name of the charge table.
+        """
+        self._min_charge = min_charge
+        self._table_name = table_name
+
+    def _keep_frame(self, frame: "icetray.I3Frame") -> bool:
+        """Check that the frame has a charge and that it is within the limits.
+
+        Args:
+            frame: I3-frame
+        """
+        if frame.Has(self._table_name):
+            try:
+                charge = frame[self._table_name].value
+                return charge >= self._min_charge
+            except AttributeError:
+                try:
+                    charge = frame[self._table_name].charge
+                    return charge >= self._min_charge
+                except AttributeError:
+                    self.warning_once(
+                        f"Charge table {self._table_name} has no attribute\
+                          'value' or 'charge'."
+                    )
+                    return False
+        return False

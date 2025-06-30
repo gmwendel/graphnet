@@ -1,6 +1,6 @@
 """Standard model class(es)."""
 
-from typing import Any, Dict, List, Optional, Union, Type
+from typing import Dict, List, Optional, Union, Type
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
@@ -10,23 +10,28 @@ from graphnet.models.gnn.gnn import GNN
 from graphnet.models import Model
 from .easy_model import EasySyntax
 from graphnet.models.task import StandardLearnedTask
-from graphnet.models.graphs import GraphDefinition
+from graphnet.models.data_representation import (
+    GraphDefinition,
+    DataRepresentation,
+)
 
 
 class StandardModel(EasySyntax):
     """A Standard way of combining model components in GraphNeT.
 
-    This model is compatible with the vast majority of supervised learning
-    tasks such as regression, binary and multi-label classification.
+    This model is compatible with the vast majority of supervised
+    learning tasks such as regression, binary and multi-label
+    classification.
 
     Capable of producing both event-level and pulse-level predictions.
     """
 
     def __init__(
         self,
-        graph_definition: GraphDefinition,
         tasks: Union[StandardLearnedTask, List[StandardLearnedTask]],
-        backbone: Model = None,
+        data_representation: Optional[DataRepresentation] = None,
+        graph_definition: Optional[GraphDefinition] = None,
+        backbone: Optional[Model] = None,
         gnn: Optional[GNN] = None,
         optimizer_class: Type[torch.optim.Optimizer] = Adam,
         optimizer_kwargs: Optional[Dict] = None,
@@ -44,6 +49,24 @@ class StandardModel(EasySyntax):
             scheduler_kwargs=scheduler_kwargs,
             scheduler_config=scheduler_config,
         )
+        # DEPRECATION ARG GRAPH_DEFINITION: REMOVE AT 2.0 LAUNCH
+        # See https://github.com/graphnet-team/graphnet/issues/647
+
+        if (data_representation is None) & (graph_definition is not None):
+            data_representation = graph_definition
+            # Code continues after warning
+            self.warning(
+                "DeprecationWarning: Argument `graph_definition` will be"
+                " deprecated in GraphNeT 2.0. Please use `data_representation`"
+                " instead."
+                ""
+            )
+        elif (data_representation is None) & (graph_definition is None):
+            # Code stops
+            raise TypeError(
+                "__init__() missing 1 required keyword argument:"
+                "'data_representation'"
+            )
 
         # deprecation warnings
         if (backbone is None) & (gnn is not None):
@@ -62,10 +85,10 @@ class StandardModel(EasySyntax):
 
         # Checks
         assert isinstance(backbone, Model)
-        assert isinstance(graph_definition, GraphDefinition)
+        assert isinstance(data_representation, DataRepresentation)
 
         # Member variable(s)
-        self._graph_definition = graph_definition
+        self._data_representation = data_representation
         self.backbone = backbone
 
     def compute_loss(
@@ -111,8 +134,8 @@ class StandardModel(EasySyntax):
     def shared_step(self, batch: List[Data], batch_idx: int) -> Tensor:
         """Perform shared step.
 
-        Applies the forward pass and the following loss calculation, shared
-        between the training and validation step.
+        Applies the forward pass and the following loss calculation,
+        shared between the training and validation step.
         """
         preds = self(batch)
         loss = self.compute_loss(preds, batch)
@@ -123,3 +146,14 @@ class StandardModel(EasySyntax):
         accepted_tasks = StandardLearnedTask
         for task in self._tasks:
             assert isinstance(task, accepted_tasks)
+
+    # DEPRECATION ARG GRAPH_DEFINITION: REMOVE AT 2.0 LAUNCH
+    # See https://github.com/graphnet-team/graphnet/issues/647
+    @property
+    def _graph_definition(self) -> DataRepresentation:
+        """Return the graph definition."""
+        self.warning(
+            "DeprecationWarning: `_graph_definition` will be deprecated in"
+            " GraphNeT 2.0. Please use `_data_representation` instead."
+        )
+        return self._data_representation

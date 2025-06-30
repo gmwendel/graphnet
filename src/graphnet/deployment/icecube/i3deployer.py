@@ -11,7 +11,7 @@ from graphnet.deployment import Deployer
 
 if has_icecube_package() or TYPE_CHECKING:
     from icecube import icetray, dataio  # pyright: reportMissingImports=false
-    from I3Tray import I3Tray
+    from icecube.icetray import I3Tray
 
 
 class I3Deployer(Deployer):
@@ -50,10 +50,11 @@ class I3Deployer(Deployer):
     ) -> None:
         """Will start an IceTray read/write chain with graphnet modules.
 
-        If n_workers > 1, this function is run in parallel n_worker times. Each
-        worker will loop over an allocated set of i3 files. The new i3 files
-        will appear as copies of the original i3 files but with reconstructions
-        added. Original i3 files are left untouched.
+        If n_workers > 1, this function is run in parallel n_worker
+        times. Each worker will loop over an allocated set of i3 files.
+        The new i3 files will appear as copies of the original i3 files
+        but with reconstructions added. Original i3 files are left
+        untouched.
         """
         for i3_file in settings.i3_files:
             tray = I3Tray()

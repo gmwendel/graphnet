@@ -1,6 +1,6 @@
 """Contains `DataConverter`."""
 
-from typing import List, Union, OrderedDict, Dict, Tuple, Any, Optional, Type
+from typing import List, Union, OrderedDict, Dict, Tuple, Any, Optional
 from abc import ABC
 
 from tqdm import tqdm
@@ -29,7 +29,8 @@ from .dataclasses import I3FileSet
 def init_global_index(index: Synchronized, output_files: List[str]) -> None:
     """Make `global_index` available to pool workers."""
     global global_index, global_output_files  # type: ignore[name-defined]
-    global_index, global_output_files = (index, output_files)  # type: ignore[name-defined]
+    global_index = index  # type: ignore[name-defined]
+    global_output_files = output_files  # type: ignore[name-defined]
 
 
 class DataConverter(ABC, Logger):
@@ -118,10 +119,9 @@ class DataConverter(ABC, Logger):
     ) -> None:
         """Multi Processing Logic.
 
-        Spawns worker pool,
-        distributes the input files evenly across workers.
-        declare event_no as globally accessible variable across workers.
-        starts jobs.
+        Spawns worker pool, distributes the input files evenly across
+        workers. declare event_no as globally accessible variable across
+        workers. starts jobs.
 
         Will call process_file in parallel.
         """
@@ -140,8 +140,8 @@ class DataConverter(ABC, Logger):
     def _process_file(self, file_path: Union[str, I3FileSet]) -> None:
         """Process a single file.
 
-        Calls file reader to recieve extracted output, event ids
-        is assigned to the extracted data and is handed to save method.
+        Calls file reader to recieve extracted output, event ids is
+        assigned to the extracted data and is handed to save method.
 
         This function is called in parallel.
         """
@@ -217,16 +217,17 @@ class DataConverter(ABC, Logger):
                         data[k][extractor_name],
                         index=[0] if n_rows == 1 else None,
                     )
-                    if extractor_name in dataframe_dict.keys():
-                        dataframe_dict[extractor_name].append(df)
-                    else:
-                        dataframe_dict[extractor_name] = [df]
+                    if not df.empty:
+                        if extractor_name in dataframe_dict.keys():
+                            dataframe_dict[extractor_name].append(df)
+                        else:
+                            dataframe_dict[extractor_name] = [df]
 
         # Merge each list of dataframes if wanted by writer
         if self._save_method.expects_merged_dataframes:
             for key in dataframe_dict.keys():
                 dataframe_dict[key] = pd.concat(
-                    dataframe_dict[key], axis=0
+                    [df for df in dataframe_dict[key] if not df.empty], axis=0
                 ).reset_index(drop=True)
         return dataframe_dict
 
@@ -249,7 +250,8 @@ class DataConverter(ABC, Logger):
                 n_rows = 1
         except ValueError as e:
             self.error(
-                f"Features from {extractor_name} ({extractor_dict.keys()}) have different lengths."
+                f"Features from {extractor_name} ({extractor_dict.keys()}) "
+                "have different lengths."
             )
             raise e
         return n_rows
@@ -276,9 +278,11 @@ class DataConverter(ABC, Logger):
         """Identify map function to use (pure python or multiprocess)."""
         # Choose relevant map-function given the requested number of workers.
         n_workers = min(self._num_workers, nb_files)
+        self._num_workers = n_workers
         if n_workers > 1:
             self.info(
-                f"Starting pool of {n_workers} workers to process {nb_files} {unit}"
+                f"Starting pool of {n_workers} workers to process"
+                f"{nb_files} {unit}"
             )
 
             manager = Manager()
@@ -294,7 +298,8 @@ class DataConverter(ABC, Logger):
 
         else:
             self.info(
-                f"Processing {nb_files} {unit} in main thread (not multiprocessing)"
+                f"Processing {nb_files} {unit} in main thread"
+                "(not multiprocessing)"
             )
             map_fn = map  # type: ignore
             pool = None
@@ -320,7 +325,10 @@ class DataConverter(ABC, Logger):
 
     @final
     def merge_files(
-        self, files: Optional[Union[List[str], str]] = None, **kwargs: Any
+        self,
+        files: Optional[Union[List[str], str]] = None,
+        output_dir: Optional[str] = None,
+        **kwargs: Any,
     ) -> None:
         """Merge converted files.
 
@@ -329,6 +337,9 @@ class DataConverter(ABC, Logger):
 
         Args:
             files: Intermediate files to be merged.
+            output_dir: Directory to save the merged files in.
+            **kwargs: Additional keyword arguments to be passed to the
+                      `GraphNeTWriter.merge_files` method.
         """
         if (files is None) & (len(self._output_files) > 0):
             # If no input files are given, but output files from conversion
@@ -348,9 +359,10 @@ class DataConverter(ABC, Logger):
                 "and you must therefore specify argument `files`."
             )
             assert files is not None
-
+        if output_dir is None:
+            output_dir = self._output_dir
         # Merge files
-        merge_path = os.path.join(self._output_dir, "merged")
+        merge_path = os.path.join(output_dir, "merged")
         self.info(f"Merging files to {merge_path}")
         self._save_method.merge_files(
             files=files_to_merge, output_dir=merge_path, **kwargs

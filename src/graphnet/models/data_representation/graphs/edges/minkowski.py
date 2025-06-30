@@ -1,10 +1,11 @@
 """Module containing EdgeDefinitions based on the Minkowski Metric."""
+
 from typing import Optional, List
 
 import torch
 from torch_geometric.data import Data
 from torch_geometric.utils import to_dense_batch
-from graphnet.models.graphs.edges.edges import EdgeDefinition
+from graphnet.models.data_representation.graphs.edges import EdgeDefinition
 
 
 def compute_minkowski_distance_mat(

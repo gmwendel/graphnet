@@ -1,7 +1,8 @@
 """Example of training Model.
 
 This example is based on Icemix solution proposed in
-https://github.com/DrHB/icecube-2nd-place.git (2nd place solution).
+https://github.com/DrHB/icecube-2nd-place.git
+(2nd place solution).
 """
 
 import os
@@ -78,9 +79,9 @@ def main(
             "max_epochs": max_epochs,
             "distribution_strategy": "ddp_find_unused_parameters_true",
         },
-        "dataset_reference": SQLiteDataset
-        if path.endswith(".db")
-        else ParquetDataset,
+        "dataset_reference": (
+            SQLiteDataset if path.endswith(".db") else ParquetDataset
+        ),
     }
 
     graph_definition = KNNGraph(
@@ -213,9 +214,6 @@ def main(
     # Save results as .csv
     results.to_csv(f"{path}/results.csv")
 
-    # Save full model (including weights) to .pth file - Not version proof
-    model.save(f"{path}/model.pth")
-
     # Save model config and state dict - Version safe save method.
     model.save_state_dict(f"{path}/state_dict.pth")
     model.save_config(f"{path}/model_config.yml")
@@ -262,7 +260,7 @@ Train GNN model without the use of config files.
         ("max-epochs", 1),
         ("early-stopping-patience", 2),
         ("batch-size", 16),
-        "num-workers",
+        ("num-workers", 2),
     )
 
     parser.add_argument(

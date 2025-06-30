@@ -1,4 +1,5 @@
 """Config classes for the `graphnet.data.dataset` module."""
+
 import warnings
 from abc import ABCMeta
 from functools import wraps
@@ -54,7 +55,12 @@ class DatasetConfig(BaseConfig):
     loss_weight_column: Optional[str] = None
     loss_weight_default_value: Optional[float] = None
     seed: Optional[int] = None
+
+    # DEPRECATION FIELD: REMOVE AT 2.0 LAUNCH
+    # See https://github.com/graphnet-team/graphnet/issues/647
     graph_definition: Any = None
+
+    data_representation: Any = None
     labels: Optional[Dict[str, Any]] = None
 
     def __init__(self, **data: Any) -> None:
@@ -161,9 +167,9 @@ class DatasetConfig(BaseConfig):
     def as_dict(self) -> Dict[str, Dict[str, Any]]:
         """Represent ModelConfig as a dict.
 
-        This builds on `BaseModel.dict()` but wraps the output in a single-key
-        dictionary to make it unambiguous to identify model arguments that are
-        themselves models.
+        This builds on `BaseModel.dict()` but wraps the output in a
+        single-key dictionary to make it unambiguous to identify model
+        arguments that are themselves models.
         """
         config_dict = self.dict()
         config_dict = traverse_and_apply(

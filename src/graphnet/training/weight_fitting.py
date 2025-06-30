@@ -16,8 +16,8 @@ from graphnet.utilities.logging import Logger
 class WeightFitter(ABC, Logger):
     """Produces per-event weights.
 
-    Weights are returned by the public method `fit_weights()`, and the weights
-    can be saved as a table in the database.
+    Weights are returned by the public method `fit_weights()`, and the
+    weights can be saved as a table in the database.
     """
 
     def __init__(
@@ -39,9 +39,9 @@ class WeightFitter(ABC, Logger):
     ) -> pd.DataFrame:
         """Return truth `variable`, optionally only for `selection` events."""
         if selection is None:
-            query = f"select {self._index_column}, {variable} from {self._truth_table}"
+            query = f"select {self._index_column}, {variable} from {self._truth_table}"  # noqa: E501
         else:
-            query = f"select {self._index_column}, {variable} from {self._truth_table} where {self._index_column} in {str(tuple(selection))}"
+            query = f"select {self._index_column}, {variable} from {self._truth_table} where {self._index_column} in {str(tuple(selection))}"  # noqa: E501
         with sqlite3.connect(self._database_path) as con:
             data = pd.read_sql(query, con)
         return data
@@ -160,10 +160,12 @@ class Uniform(WeightFitter):
         # Histogram `truth_values`
         bin_counts, _ = np.histogram(truth[self._variable], bins=self._bins)
 
-        # Get reweighting for each bin to achieve uniformity. (NB: No normalisation applied.)
+        # Get reweighting for each bin to achieve uniformity.
+        # (NB: No normalisation applied.)
         bin_weights = 1.0 / np.where(bin_counts == 0, np.nan, bin_counts)
 
-        # For each sample in `truth_values`, get the weight in the corresponding bin
+        # For each sample in `truth_values`, get the weight in
+        # the corresponding bin
         ix = np.digitize(truth[self._variable], bins=self._bins) - 1
         sample_weights = bin_weights[ix]
         sample_weights = sample_weights / sample_weights.mean()
@@ -178,8 +180,8 @@ class Uniform(WeightFitter):
 class BjoernLow(WeightFitter):
     """Produces per-event weights.
 
-    Events below x_low are weighted to be uniform, whereas events above x_low
-    are weighted to follow a 1/(1+a*(x_low -x)) curve.
+    Events below x_low are weighted to be uniform, whereas events above
+    x_low are weighted to follow a 1/(1+a*(x_low -x)) curve.
     """
 
     def _fit_weights(  # type: ignore[override]
@@ -207,10 +209,12 @@ class BjoernLow(WeightFitter):
         # Histogram `truth_values`
         bin_counts, _ = np.histogram(truth[self._variable], bins=self._bins)
 
-        # Get reweighting for each bin to achieve uniformity. (NB: No normalisation applied.)
+        # Get reweighting for each bin to achieve uniformity.
+        # (NB: No normalisation applied.)
         bin_weights = 1.0 / np.where(bin_counts == 0, np.nan, bin_counts)
 
-        # For each sample in `truth_values`, get the weight in the corresponding bin
+        # For each sample in `truth_values`,
+        # get the weight in the corresponding bin
         ix = np.digitize(truth[self._variable], bins=self._bins) - 1
         sample_weights = bin_weights[ix]
         sample_weights = sample_weights / sample_weights.mean()

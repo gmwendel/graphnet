@@ -1,4 +1,5 @@
 """Class(es) for deploying GraphNeT models in icetray as I3Modules."""
+
 from abc import abstractmethod
 from typing import Any, List, Union, Dict
 
@@ -46,6 +47,7 @@ class DeploymentModule(Logger):
 
         # Set model to inference mode.
         self.model.inference()
+        self.model.train(mode=False)
 
         # Move model to device
         self.model.to(device)

@@ -1,4 +1,5 @@
 """Unit tests for node definitions."""
+
 import numpy as np
 import pandas as pd
 import sqlite3
@@ -10,7 +11,8 @@ from graphnet.constants import EXAMPLE_DATA_DIR
 def test_percentile_cluster() -> None:
     """Test that percentiles outputted by PercentileCluster.
 
-    Here we check that it matches percentiles obtained from "traditional" ways.
+    Here we check that it matches percentiles obtained from
+    "traditional" ways.
     """
     # definitions
     percentiles = [0, 10, 50, 90, 100]
@@ -19,7 +21,7 @@ def test_percentile_cluster() -> None:
     with sqlite3.connect(database) as con:
         query = "select event_no from mc_truth limit 1"
         event_no = pd.read_sql(query, con)
-        query = f'select sensor_pos_x, sensor_pos_y, sensor_pos_z, t from total where event_no = {str(event_no["event_no"][0])}'
+        query = f'select sensor_pos_x, sensor_pos_y, sensor_pos_z, t from total where event_no = {str(event_no["event_no"][0])}'  # noqa: E501
         df = pd.read_sql(query, con)
 
     # Save original feature names, create variables.
@@ -37,8 +39,9 @@ def test_percentile_cluster() -> None:
     )
 
     # Apply node definition to torch tensor with raw pulses
-    graph, new_features = node_definition(tensor)
-    x_tilde = graph.x.numpy()
+    graph = node_definition(tensor)
+    new_features = node_definition._output_feature_names
+    x_tilde = graph.numpy()
 
     # Calculate percentiles "the normal way" and compare that output of
     # node definition match.
